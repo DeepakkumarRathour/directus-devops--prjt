@@ -17,7 +17,7 @@ services:
     container_name: directus-app
     restart: always
     ports:
-      - "127.0.0.1:8055:8055"
+      - "8055:8055"
     environment:
       DB_CLIENT: "pg"
       DB_HOST: database
