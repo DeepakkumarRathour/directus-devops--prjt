@@ -14,17 +14,13 @@ pipeline {
 
         stage('Stop Existing Containers') {
             steps {
-                sh '''
-                docker-compose down || true
-                '''
+                sh 'docker-compose down || true'
             }
         }
 
         stage('Start Directus') {
             steps {
-                sh '''
-                docker-compose up -d
-                '''
+                sh 'docker-compose up -d'
             }
         }
 
@@ -36,11 +32,8 @@ pipeline {
 
         stage('Health Check') {
             steps {
-                sh '''
-                curl -f http://127.0.0.1:8055
-                '''
+                sh 'curl -f http://127.0.0.1:8055'
             }
         }
     }
 }
-
