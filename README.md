@@ -1,23 +1,24 @@
-# 🚀 Directus CI/CD Deployment on AWS (Beginner Friendly)
+# 🚀 Deploying Directus on AWS with Jenkins and Docker
 
-This repository demonstrates a **complete end‑to‑end CI/CD pipeline** to deploy **Directus** on an **AWS EC2 instance** using **GitHub, Jenkins, Docker, Docker Compose, and NGINX**.
+This repository shows how to set up a **full CI/CD pipeline** for deploying **Directus** on an **AWS EC2 instance**, using **GitHub for source control, Jenkins for automation, Docker for containerization, and NGINX as a reverse proxy**.
 
-
----
-
-## 🧱 Tech Stack
-
-* **Cloud**: AWS EC2 (Ubuntu)
-* **CI/CD**: Jenkins
-* **Containerization**: Docker & Docker Compose
-* **Database**: PostgreSQL
-* **Backend**: Directus
-* **Reverse Proxy**: NGINX
-* **Source Control**: GitHub
+The guide is written step-by-step, so you can follow along even if you’re new to DevOps.
 
 ---
 
-## 📁 Project Structure
+## 🛠 Tech Stack
+
+* **Cloud:** AWS EC2 (Ubuntu 24.04)
+* **CI/CD:** Jenkins
+* **Containerization:** Docker & Docker Compose
+* **Database:** PostgreSQL
+* **Backend:** Directus
+* **Web Server:** NGINX
+* **Version Control:** GitHub
+
+---
+
+## 📂 Project Layout
 
 ```
 directus-devops--prjt/
@@ -32,47 +33,100 @@ directus-devops--prjt/
 
 ---
 
-## ⚙️ Prerequisites
+## ⚡ Prerequisites
 
-* AWS EC2 Ubuntu instance
-* Ports opened in Security Group:
+Before starting, make sure you have:
 
-  * 22 (SSH)
-  * 80 (HTTP)
-  * 8080 (Jenkins)
-* GitHub repository
-* Jenkins installed on EC2
+* An AWS EC2 instance (Ubuntu 24.04)
+* Open ports in your security group: 22 (SSH), 80 (HTTP), 8080 (Jenkins)
+* A GitHub repository for the project
+* Access to the SSH key for the EC2 instance
 
 ---
 
-## 🔑 Step 1: Install Required Packages on EC2
+## 1️⃣ Connect to Your EC2 Instance
+
+```bash
+chmod 400 your-key.pem
+ssh -i your-key.pem ubuntu@13.233.199.162
+```
+
+---
+
+## 2️⃣ Update and Upgrade System Packages
 
 ```bash
 sudo apt update -y
-sudo apt install -y git docker.io docker-compose nginx
+sudo apt upgrade -y
 ```
 
-Enable and start Docker:
+---
+
+## 3️⃣ Install Java (Required for Jenkins)
 
 ```bash
+sudo apt install -y openjdk-21-jre fontconfig
+java -version
+```
+
+---
+
+## 4️⃣ Install Jenkins
+
+```bash
+sudo mkdir -p /etc/apt/keyrings
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+sudo apt update -y
+sudo apt install -y jenkins
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+sudo systemctl status jenkins
+```
+
+Access Jenkins: `http://13.233.199.162:8080`
+
+Unlock Jenkins:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+Install suggested plugins: Git, Pipeline, Docker Pipeline, GitHub Integration, GitHub Branch Source, Workspace Cleanup.
+
+---
+
+## 5️⃣ Install Docker & Docker Compose
+
+```bash
+sudo apt install -y docker.io docker-compose
 sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -aG docker ubuntu
 sudo usermod -aG docker jenkins
-```
+newgrp docker
 
-Restart services:
-
-```bash
-sudo systemctl restart docker
-sudo systemctl restart jenkins
+docker --version
+docker-compose --version
 ```
 
 ---
 
-## 🐳 Step 2: Docker Compose Configuration
+## 6️⃣ Setup Project Folder
 
-**docker-compose.yml**
+```bash
+cd ~
+mkdir directus-prod
+cd directus-prod
+```
+
+---
+
+## 7️⃣ Docker Compose Configuration
+
+Create `docker-compose.yml`:
 
 ```yaml
 version: '3'
@@ -83,7 +137,7 @@ services:
     container_name: directus-db
     environment:
       POSTGRES_USER: directus
-      POSTGRES_PASSWORD: directus
+      POSTGRES_PASSWORD: Directus@123
       POSTGRES_DB: directus
     volumes:
       - db_data:/var/lib/postgresql/data
@@ -101,7 +155,7 @@ services:
       DB_PORT: 5432
       DB_DATABASE: directus
       DB_USER: directus
-      DB_PASSWORD: directus
+      DB_PASSWORD: Directus@123
     depends_on:
       - database
 
@@ -111,7 +165,9 @@ volumes:
 
 ---
 
-## 🔐 Step 3: Environment Variables (.env)
+## 8️⃣ Environment Variables
+
+Create `.env`:
 
 ```env
 KEY=mysecretkey
@@ -122,16 +178,46 @@ ADMIN_PASSWORD=Admin@123
 
 ---
 
-## 🔁 Step 4: Jenkins Pipeline
+## 9️⃣ Manual Test
 
-**Jenkinsfile**
+```bash
+docker-compose up -d
+docker ps
+```
+
+Visit: `http://13.233.199.162:8055`
+
+Stop containers:
+
+```bash
+docker-compose down
+```
+
+---
+
+## 🔁 10️⃣ GitHub Setup
+
+```bash
+git init
+git branch -M main
+git remote add origin https://github.com/DeepakkumarRathour/directus-devops--prjt.git
+git add .
+git commit -m "Production-ready Directus deployment"
+git push -u origin main
+```
+
+---
+
+## 11️⃣ Jenkins Pipeline
+
+Create `Jenkinsfile`:
 
 ```groovy
 pipeline {
     agent any
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/DeepakkumarRathour/directus-devops--prjt.git'
             }
@@ -158,9 +244,9 @@ pipeline {
 
 ---
 
-## 🌐 Step 5: NGINX Reverse Proxy
+## 12️⃣ NGINX Reverse Proxy
 
-**nginx/default.conf**
+Create `nginx/default.conf`:
 
 ```nginx
 server {
@@ -174,7 +260,7 @@ server {
 }
 ```
 
-Enable config:
+Enable and restart NGINX:
 
 ```bash
 sudo rm /etc/nginx/sites-enabled/default
@@ -184,68 +270,42 @@ sudo systemctl restart nginx
 
 ---
 
-## ▶️ Step 6: Jenkins Job Configuration
+## 13️⃣ Jenkins Job Configuration
 
-* **Pipeline type**: Pipeline script from SCM
-* **SCM**: Git
-* **Branch**: `*/main`
-* **Script Path**: `Jenkinsfile`
+* Type: **Pipeline**
+* Pipeline script from SCM
+* SCM: Git, branch: `*/main`
+* Script Path: `Jenkinsfile`
+* Save → Build Now
 
 ---
 
-## ✅ Verification
-
-Check containers:
+## 14️⃣ Verification
 
 ```bash
 docker ps
 ```
 
-Open browser:
+Visit: `http://13.233.199.162`
 
-```
-http://<EC2_PUBLIC_IP>
-```
-
-Directus login page should load.
+Directus login should appear.
 
 ---
 
-## 🧪 Troubleshooting
+## 🌟 Future Enhancements
 
-### Branch Error
-
-```
-fatal: couldn't find remote ref refs/heads/master
-```
-
-✔ Fix: Change branch to `main` in Jenkins.
-
-### Directory Error
-
-```
-cd: can't cd to directory
-```
-
-✔ Fix: Use `$WORKSPACE` in Jenkinsfile.
-
----
-
-## 🚀 Future Enhancements
-
-* HTTPS using Let's Encrypt
-* GitHub Webhooks for auto‑deploy
-* AWS RDS instead of container DB
+* HTTPS with Let’s Encrypt
+* GitHub Webhooks for auto-deploy
+* AWS RDS for database
 * Secrets via AWS SSM
-* Monitoring with Prometheus
+* Monitoring with Prometheus/Grafana
 
 ---
 
-## 👨‍💻 Author
+## 👤 Author
 
-**Deepak Rathour**
-DevOps Fresher | AWS | Docker | Jenkins
+**Deepak Rathour** — DevOps Enthusiast | AWS | Docker | Jenkins
 
 ---
 
-⭐ If this helped you, star the repository!
+⭐ If this guide helped, please star the repository!
