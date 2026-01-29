@@ -2,7 +2,6 @@
 
 This repository demonstrates a **complete end‑to‑end CI/CD pipeline** to deploy **Directus** on an **AWS EC2 instance** using **GitHub, Jenkins, Docker, Docker Compose, and NGINX**.
 
-This guide is written assuming **zero prior DevOps experience**. Every step is explained with **exact commands**.
 
 ---
 
