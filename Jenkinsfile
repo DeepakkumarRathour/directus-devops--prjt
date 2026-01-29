@@ -1,27 +1,44 @@
 pipeline {
     agent any
 
+    environment {
+        COMPOSE_PROJECT_NAME = "directus-prod"
+    }
+
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main',
-                url: 'https://github.com/DeepakkumarRathour/directus-devops--prjt.git'
+                checkout scm
             }
         }
 
-        stage('Deploy Directus') {
+        stage('Stop Existing Containers') {
             steps {
                 sh '''
-                cd /home/ubuntu/directus-prod
-                docker-compose pull
+                docker-compose down || true
+                '''
+            }
+        }
+
+        stage('Start Directus') {
+            steps {
+                sh '''
                 docker-compose up -d
                 '''
             }
         }
 
+        stage('Wait for Directus') {
+            steps {
+                sh 'sleep 20'
+            }
+        }
+
         stage('Health Check') {
             steps {
-                sh 'curl -f http://127.0.0.1:8055'
+                sh '''
+                curl -f http://127.0.0.1:8055
+                '''
             }
         }
     }
